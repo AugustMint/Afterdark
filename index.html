@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>After Dark – Party Quest</title>
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.3/dist/mqtt.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
 <style>
@@ -945,45 +945,36 @@ function setMode(m,fromState){
   mode=m;$("tabBoard").setAttribute("aria-selected",m==="board");$("tabTod").setAttribute("aria-selected",m==="tod");$("boardView").hidden=m!=="board";$("todView").hidden=m!=="tod";renderPlayers();
 }
 
-/* ---------- live play (PeerJS, no login) ---------- */
-const ICE={iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:global.stun.twilio.com:3478"},
- {urls:"turn:openrelay.metered.ca:80",username:"openrelayproject",credential:"openrelayproject"},
- {urls:"turn:openrelay.metered.ca:443",username:"openrelayproject",credential:"openrelayproject"},
- {urls:"turn:openrelay.metered.ca:443?transport=tcp",username:"openrelayproject",credential:"openrelayproject"}]};
-function netJoin(code,asHost){return new Promise((resolve,reject)=>{
-  const id="afterdark-party-"+code;let peer,myId=null,mine={},table={},hostConn=null,done=false,closed=false;
-  const hs=[],errHs=[],conns=new Map();
+/* ---------- live play (internet relay, no login) ---------- */
+const BROKERS=window.AD_BROKERS||["wss://broker.hivemq.com:8884/mqtt","wss://broker.emqx.io:8084/mqtt"];
+function netJoin(code){return new Promise((resolve,reject)=>{
+  const base="afterdark-party-v1/"+code+"/p/",myId="ad"+Math.random().toString(36).slice(2,10);
+  let i=0,client=null,done=false,closed=false,mine={},table={},pubT=null;const hs=[],errHs=[];
   const snap=()=>Object.entries(table).map(([p,pr])=>({peer:p,presence:pr||{},isMe:p===myId,sameTab:p===myId,kind:"viewer",by:null,guest:false,updatedAt:Date.now()}));
   const fire=()=>setTimeout(()=>{if(closed) return;const ps=snap();hs.forEach(h=>h({peers:ps,joined:[],left:[],updated:[]}))},0);
-  const fail=msg=>{if(!done){done=true;try{peer&&peer.destroy()}catch(e){}reject(new Error(msg))}else if(!closed){closed=true;errHs.forEach(h=>h({code:"upstream_error",message:msg}));try{peer.destroy()}catch(e){}}};
-  const broadcast=()=>{const m={t:"all",table};for(const c of conns.values()) if(c.open) try{c.send(m)}catch(e){}};
+  const pub=()=>{clearTimeout(pubT);pubT=setTimeout(()=>{if(client&&client.connected) client.publish(base+myId,JSON.stringify(mine),{retain:true,qos:1})},30)};
   const room={
-    presence:async patch=>{mine={...mine};for(const k in patch){if(patch[k]===null) delete mine[k];else mine[k]=JSON.parse(JSON.stringify(patch[k]))}
-      if(myId) table[myId]=mine;
-      if(asHost) broadcast();else if(hostConn&&hostConn.open) hostConn.send({t:"p",pr:mine});
-      fire()},
+    presence:async patch=>{mine={...mine};for(const k in patch){if(patch[k]===null) delete mine[k];else mine[k]=JSON.parse(JSON.stringify(patch[k]))}table[myId]=mine;pub();fire()},
     peers:snap,
     onPeers:(h,e)=>{hs.push(h);if(e) errHs.push(e);fire();return()=>{}},
-    leave:async()=>{closed=true;try{peer.destroy()}catch(e){}}
+    leave:async()=>{closed=true;clearTimeout(pubT);const c=client;if(!c) return;try{c.publish(base+myId,"",{retain:true,qos:1},()=>c.end(true))}catch(e){}setTimeout(()=>{try{c.end(true)}catch(e){}},1000)}
   };
-  try{peer=asHost?new Peer(id,{config:ICE}):new Peer({config:ICE})}catch(e){reject(new Error("network"));return}
-  const openT=setTimeout(()=>fail("timeout"),15000);
-  peer.on("open",pid=>{myId=pid;table[myId]=mine;
-    if(asHost){clearTimeout(openT);done=true;resolve(room);return}
-    hostConn=peer.connect(id,{reliable:true,serialization:"json"});
-    hostConn.on("open",()=>{clearTimeout(openT);done=true;hostConn.send({t:"p",pr:mine});resolve(room)});
-    hostConn.on("data",m=>{if(m&&m.t==="all"&&m.table&&typeof m.table==="object"){const nt={};for(const k in m.table) if(k!==myId) nt[k]=m.table[k];nt[myId]=mine;table=nt;fire()}});
-    hostConn.on("close",()=>fail("host_left"));
-    hostConn.on("error",()=>fail("host_left"));
-  });
-  if(asHost) peer.on("connection",c=>{
-    c.on("open",()=>{if(conns.size>=9){c.close();return}conns.set(c.peer,c);c.send({t:"all",table})});
-    c.on("data",m=>{if(m&&m.t==="p"&&m.pr&&typeof m.pr==="object"&&JSON.stringify(m.pr).length<6000){table[c.peer]=m.pr;broadcast();fire()}});
-    const gone=()=>{if(!conns.has(c.peer)) return;conns.delete(c.peer);delete table[c.peer];broadcast();fire()};
-    c.on("close",gone);c.on("error",gone);
-  });
-  peer.on("error",e=>{const ty=e&&e.type;if(asHost&&done&&ty==="peer-unavailable") return;clearTimeout(openT);fail(ty==="unavailable-id"?"taken":ty==="peer-unavailable"?"not_found":"network")});
-  peer.on("disconnected",()=>{if(!closed) try{peer.reconnect()}catch(e){}});
+  const tryConnect=()=>{
+    if(i>=BROKERS.length){if(!done){done=true;reject(new Error("network"))}return}
+    const url=BROKERS[i++];let opened=false,c;
+    try{c=mqtt.connect(url,{clientId:myId,clean:true,keepalive:15,reconnectPeriod:2000,connectTimeout:6000,will:{topic:base+myId,payload:"",retain:true,qos:1}})}catch(e){tryConnect();return}
+    const t=setTimeout(()=>{if(!opened){try{c.end(true)}catch(e){}tryConnect()}},8000);
+    c.on("connect",()=>{if(closed) return;
+      if(!opened){opened=true;clearTimeout(t);client=c;
+        c.subscribe(base+"+",{qos:1},err=>{if(err){if(!done){done=true;reject(new Error("network"))}return}table[myId]=mine;pub();if(!done){done=true;resolve(room)}})}
+      else{pub();toast("Reconnected ✅")}});
+    c.on("message",(topic,buf)=>{const pid=topic.slice(base.length);if(!pid||pid===myId) return;const s=buf.toString();
+      if(!s){if(pid in table){delete table[pid];fire()}return}
+      if(s.length>8000) return;try{const pr=JSON.parse(s);if(pr&&typeof pr==="object"&&!Array.isArray(pr)){table[pid]=pr;fire()}}catch(e){}});
+    c.on("offline",()=>{if(opened&&!closed) toast("Connection lost. Reconnecting…")});
+    c.on("error",()=>{if(!opened){clearTimeout(t);try{c.end(true)}catch(e){}tryConnect()}});
+  };
+  tryConnect();
 })}
 function myPeer(){const p=(G&&G.room?G.room.peers():[]).find(x=>x.isMe&&x.sameTab);return p?p.peer:null}
 function me(){return G?(G.me||(G.me=myPeer())):null}
@@ -993,7 +984,7 @@ function getName(){const v=cleanName($("myName").value);if(!$("myName").value.tr
 const inviteLink=code=>location.href.split("#")[0]+"#"+code;
 
 function initLive(){
-  if(typeof Peer==="undefined"){$("liveNA").textContent="Live play needs an internet connection. Reload the page when you’re online. You can still play on one phone below.";return}
+  if(typeof mqtt==="undefined"){$("liveNA").textContent="Live play needs an internet connection. Reload the page when you’re online. You can still play on one phone below.";return}
   $("liveNA").hidden=true;$("liveOff").hidden=false;$("myName").value=myName;$("openGames").hidden=true;
   const h=location.hash.replace("#","").toLowerCase();
   if(/^[a-z0-9]{4}$/.test(h)){$("codeIn").value=h;toast("You’ve been invited! Type your name, then tap Join.");setTimeout(()=>$("livePanel").scrollIntoView({block:"center"}),300)}
@@ -1004,10 +995,10 @@ async function enterGame(code,asHost,tries=0){
   if(joining) return;joining=true;$("hostBtn").disabled=true;$("joinBtn").disabled=true;
   toast(asHost?"Opening a room…":"Joining room "+code.toUpperCase()+"…");
   let room;
-  try{room=await netJoin(code,asHost)}catch(e){
+  try{room=await netJoin(code)}catch(e){
     joining=false;$("hostBtn").disabled=false;$("joinBtn").disabled=false;
     if(e.message==="taken"&&asHost&&tries<3) return enterGame(randCode(),true,tries+1);
-    toast(e.message==="not_found"?"No room with that code. Check it with the host.":e.message==="timeout"?"Connection timed out. Try again, or join the same Wi-Fi.":"Couldn’t connect. Check your internet and try again.");return}
+    toast("Couldn’t reach the game server. Check your internet and try again.");return}
   joining=false;$("hostBtn").disabled=false;$("joinBtn").disabled=false;
   G={room,code,me:null,isHost:false,st:null,cache:null,lastV:null,lastEv:null,lastAct:{},actN:Date.now(),lastReact:{},busy:false,pendingSt:null,takeoverT:null};
   G.me=myPeer();
@@ -1016,8 +1007,8 @@ async function enterGame(code,asHost,tries=0){
   $("liveInfo").textContent=asHost?"Send the code or the invite link to your friends.":"Connecting to the game…";
   if(asHost) becomeHost(freshState());
   room.presence({name:myName}).catch(()=>{});
-  room.onPeers(onGamePeers,e=>{toast(e&&e.message==="host_left"?"The host ended the game.":"Lost the live connection.");leaveGame()});
-  if(!asHost) setTimeout(()=>{if(G&&G.code===code&&!G.cache){toast("The host isn’t responding. Try again.");leaveGame()}},12000);
+  room.onPeers(onGamePeers,()=>{toast("Lost the live connection.");leaveGame()});
+  if(!asHost) setTimeout(()=>{if(G&&G.code===code&&!G.cache){toast("No room with that code. Check it with the host.");leaveGame()}},10000);
   renderLevels();
 }
 function freshState(){return{v:0,level,mode,order:[],names:{},pos:{},turn:0,board:Array.from({length:36},boardRef),phase:"idle",w:null,last:null,host:null,ev:{id:1,type:"init"}}}
@@ -1039,7 +1030,14 @@ function onGamePeers(ch){
   for(const p of peers){const r=p.presence&&p.presence.react;if(r&&typeof r.n==="number"&&r.n!==G.lastReact[p.peer]){const seen=p.peer in G.lastReact;G.lastReact[p.peer]=r.n;if(seen&&!p.sameTab) floatReact(r.e,p.presence.name)}else if(!(p.peer in G.lastReact)) G.lastReact[p.peer]=r?r.n:0}
   if(G.isHost){hostSync(peers);return}
   const hosts=peers.filter(p=>!p.sameTab&&p.presence&&p.presence.st&&typeof p.presence.st.v==="number"&&Array.isArray(p.presence.st.order));
-  if(hosts.length){const h=hosts.sort((a,b)=>b.presence.st.v-a.presence.st.v)[0];if(h.presence.st.v!==G.lastV) queueState(h.presence.st)}
+  if(hosts.length){clearTimeout(G.takeoverT);G.takeoverT=null;const h=hosts.sort((a,b)=>b.presence.st.v-a.presence.st.v)[0];if(h.presence.st.v!==G.lastV) queueState(h.presence.st)}
+  else if(G.cache&&!G.takeoverT){G.takeoverT=setTimeout(()=>{if(G){G.takeoverT=null;maybeTakeover()}},3000)}
+}
+function maybeTakeover(){
+  const peers=G.room.peers().filter(p=>p.presence&&typeof p.presence.name==="string");
+  if(peers.some(p=>p.presence.st)) return;
+  const lowest=peers.map(p=>p.peer).sort()[0];
+  if(lowest&&lowest===me()){const s=JSON.parse(JSON.stringify(G.cache));if(L[s.level]) level=s.level;decks={};becomeHost(s);hostSync(G.room.peers());toast("The host left, so you’re the host now 👑")}
 }
 function hostSync(peers){
   const s=G.st;let ch=false;
@@ -1118,7 +1116,7 @@ function leaveGame(){
   if(!G) return;const g=G;G=null;clearTimeout(g.takeoverT);
   g.room.leave().catch(()=>{});
   players=localPlayers.slice();pos=players.map(()=>-1);turn=0;
-  closeModalUI();todReset();$("liveOn").hidden=true;$("liveOff").hidden=typeof Peer==="undefined";
+  closeModalUI();todReset();$("liveOn").hidden=true;$("liveOff").hidden=typeof mqtt==="undefined";
   renderLevels();newBoard();renderPlayers();
 }
 
