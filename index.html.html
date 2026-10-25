@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>After Dark – Party Quest</title>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fbf1f6;--surface:#ffffff;--text:#2a1534;--muted:#715d7c;--line:#2a153420;--ink:#1b0f22;--accent:#ff4f9a;--accent2:#7c3aed;--shadow:0 10px 30px #2a153418;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#140a1b;--surface:#22132c;--text:#fbeef6;--muted:#b9a3c6;--line:#ffffff1f;--shadow:0 10px 30px #0008;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#140a1b;--surface:#22132c;--text:#fbeef6;--muted:#b9a3c6;--line:#ffffff1f;--shadow:0 10px 30px #0008;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Outfit,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;overflow-x:hidden}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding:14px 14px 40px}
+header{text-align:center;padding:6px 0 4px;position:relative}
+h1{font-family:"Bagel Fat One",Outfit,system-ui,sans-serif;font-weight:400;font-size:clamp(46px,12vw,92px);line-height:.9;margin:0;color:var(--accent);text-shadow:4px 4px 0 var(--accent2)}
+.sub{margin:8px auto 0;max-width:46ch;color:var(--muted);font-size:15px}
+.mute{position:absolute;top:4px;right:0;border:2px solid var(--line);background:var(--surface);border-radius:50%;width:40px;height:40px;font-size:18px}
+.levels{display:flex;gap:8px;overflow-x:auto;padding:14px 2px 6px;scrollbar-width:none}
+.levels::-webkit-scrollbar{display:none}
+.lv{flex:0 0 auto;border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 15px;font-weight:800;font-size:14px;white-space:nowrap}
+.lv[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.lvinfo{font-size:14px;color:var(--muted);margin:4px 2px 12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:14px;box-shadow:var(--shadow);margin-bottom:14px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg);border-radius:14px;padding:5px}
+.tab{border:0;background:none;padding:11px;border-radius:10px;font-weight:800}
+.tab[aria-selected="true"]{background:var(--surface);box-shadow:0 2px 8px #0002}
+.players{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;align-items:center}
+.chip{display:flex;align-items:center;gap:6px;padding:5px 5px 5px 6px;border-radius:999px;border:2px solid var(--line);font-weight:600;font-size:14px}
+.chip.now{border-color:var(--accent)}
+.pawn{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:900;color:#fff;border:2px solid var(--ink);flex:0 0 auto}
+.chip button{border:0;background:none;width:24px;height:24px;border-radius:50%;color:var(--muted);font-size:16px;line-height:1}
+.addp{display:flex;gap:6px;flex:1 1 200px}
+.addp input{flex:1;min-width:0;border:2px solid var(--line);background:var(--bg);border-radius:999px;padding:7px 13px}
+.btn{border-radius:14px;padding:12px 18px;font-weight:800;background:var(--bg);border:2px solid var(--line)}
+.btn.go{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:7px 13px;border-radius:999px;font-size:14px}
+.btn.chunky{border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);font-size:18px;padding:13px 22px;transition:transform .08s,box-shadow .08s}
+.btn.chunky:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn:disabled{opacity:.55;cursor:default}
+
+/* board game */
+.boardTop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.nowPlaying{display:flex;align-items:center;gap:10px}
+.nowPlaying .pawn{width:44px;height:44px;font-size:18px;border-width:3px;box-shadow:0 4px 0 var(--ink)}
+.nowPlaying small{display:block;color:var(--muted);font-size:13px}
+.nowPlaying strong{font-size:21px;line-height:1.1}
+.tray{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:20px;background:radial-gradient(circle at 50% 40%,#2c8a5a,#14583a);border:3px solid var(--ink);box-shadow:inset 0 0 18px #0007}
+.scene{width:62px;height:62px;perspective:500px}
+.scene.toss{animation:toss 1.25s ease-out}
+@keyframes toss{0%{transform:translate(0,0) scale(1)}25%{transform:translate(-6px,-46px) scale(1.15)}55%{transform:translate(4px,0) scale(1)}70%{transform:translate(0,-12px)}85%{transform:translate(0,0)}92%{transform:translate(0,-3px)}100%{transform:none}}
+.cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 1.25s cubic-bezier(.15,.85,.3,1)}
+.face{position:absolute;inset:0;background:linear-gradient(145deg,#fff,#f1e8f3);border:2px solid var(--ink);border-radius:13px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:8px;backface-visibility:hidden}
+.pip{width:11px;height:11px;border-radius:50%;background:var(--ink);align-self:center;justify-self:center}
+.f1 .pip{background:var(--accent);width:15px;height:15px}
+.f1{transform:rotateY(0deg) translateZ(31px)}.f6{transform:rotateY(180deg) translateZ(31px)}
+.f3{transform:rotateY(90deg) translateZ(31px)}.f4{transform:rotateY(-90deg) translateZ(31px)}
+.f2{transform:rotateX(90deg) translateZ(31px)}.f5{transform:rotateX(-90deg) translateZ(31px)}
+.rollBtn{min-width:120px}
+.board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;padding:10px;border-radius:22px;border:4px solid var(--ink);
+background:var(--accent2);background-image:radial-gradient(#ffffff33 2px,transparent 2.5px);background-size:16px 16px;box-shadow:0 8px 0 var(--ink)}
+.tile{position:relative;border:3px solid var(--ink);border-radius:14px;padding:18px 4px 6px;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;text-align:center;overflow:hidden;box-shadow:0 3px 0 var(--ink);transition:transform .15s}
+.tile:nth-child(odd){transform:rotate(-1.2deg)}.tile:nth-child(even){transform:rotate(1deg)}
+.tile:hover{transform:scale(1.04) rotate(0)}
+.tile .n{position:absolute;top:3px;left:4px;width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:10px;font-weight:900;display:grid;place-items:center}
+.tile .k{font-size:9px;font-weight:900;opacity:.8}
+.tile .ic{font-size:20px;line-height:1.1}
+.tile .tx{font-size:clamp(8.5px,1.5vw,12.5px);font-weight:600;line-height:1.15;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.tile.path{box-shadow:0 0 0 3px #fff,0 3px 0 var(--ink)}
+.tile.here{z-index:2;animation:land .6s ease;box-shadow:0 0 0 4px #fff,0 0 22px 6px var(--accent)}
+@keyframes land{0%{transform:scale(1)}40%{transform:scale(1.18) rotate(-4deg)}70%{transform:scale(.96)}100%{transform:scale(1.06)}}
+.tile.fresh{animation:flip .55s ease}
+@keyframes flip{from{transform:rotateY(90deg)}to{transform:none}}
+.tokens{position:absolute;top:2px;right:2px;display:flex;flex-wrap:wrap;gap:1px;justify-content:flex-end;max-width:60%}
+.tokens .pawn{width:18px;height:18px;font-size:9px;border-width:2px}
+.tokens .pawn.hop{animation:hop .22s ease}
+@keyframes hop{50%{transform:translateY(-9px) scale(1.2)}}
+.startRow{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.startRow span{font-size:13px;color:var(--muted)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+/* spinner */
+.tod{text-align:center}
+.wheelBox{position:relative;width:min(340px,86vw);margin:6px auto 4px}
+.wheelBox canvas{width:100%;height:auto;display:block;border-radius:50%;box-shadow:0 0 0 6px var(--ink),0 10px 0 6px var(--ink)}
+.pointer{position:absolute;top:-16px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-top:34px solid var(--ink);z-index:2;filter:drop-shadow(0 2px 0 #fff)}
+.pointer.tick{animation:tick .12s ease}
+@keyframes tick{50%{transform:translateX(-50%) rotate(-14deg)}}
+.hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:27%;aspect-ratio:1;border-radius:50%;border:4px solid var(--ink);background:var(--accent);color:#fff;font-family:"Bagel Fat One",Outfit,system-ui,sans-serif;font-size:clamp(16px,5vw,24px);box-shadow:0 4px 0 var(--ink)}
+.hub:disabled{cursor:default}
+.hub.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{transform:translate(-50%,-50%) scale(1.08)}}
+.todMsg{min-height:30px;font-weight:800;font-size:18px;margin:14px 0 8px}
+.choose{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:440px;margin:0 auto}
+.choose .btn{font-size:22px;padding:18px 10px;font-family:"Bagel Fat One",Outfit,system-ui,sans-serif;font-weight:400}
+.choose .t{background:#4fd1c5;color:var(--ink)}
+.choose .d{background:#ff4f9a;color:#fff}
+.choose .r{grid-column:1/-1;font-family:Outfit,system-ui,sans-serif;font-size:15px;font-weight:800;padding:10px;background:var(--bg);color:var(--text);box-shadow:0 3px 0 var(--ink)}
+.bigcard{border-radius:22px;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);padding:24px 18px;min-height:210px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;margin:12px auto;max-width:520px;animation:cardIn .55s cubic-bezier(.2,1.4,.4,1)}
+@keyframes cardIn{from{transform:rotateY(100deg) scale(.7);opacity:0}}
+.bigcard .k{font-weight:900;font-size:14px;opacity:.8}
+.bigcard .ic{font-size:40px;line-height:1}
+.bigcard .tx{font-size:clamp(20px,5vw,28px);font-weight:800;line-height:1.2;max-width:28ch}
+.rowBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:440px;margin:0 auto}
+.optRow{display:flex;justify-content:center;gap:8px;align-items:center;margin-top:12px;font-size:13px;color:var(--muted)}
+.rules{font-size:13px;color:var(--muted)}
+.rules p{margin:6px 0}
+
+.modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:18px;z-index:20}
+.modal.open{display:flex}
+.mcard{width:min(440px,100%);border-radius:26px;border:4px solid var(--ink);padding:22px;text-align:center;box-shadow:0 10px 0 var(--ink),0 30px 60px #0009;animation:cardIn .5s cubic-bezier(.2,1.4,.4,1)}
+.mcard .who{font-weight:800;opacity:.85;font-size:14px}
+.mcard .ic{font-size:50px;margin:6px 0}
+.mcard .tx{font-size:23px;font-weight:800;line-height:1.25;margin:4px 0 18px}
+.mcard .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gate h2{font-family:"Bagel Fat One",Outfit,system-ui,sans-serif;font-weight:400;font-size:34px;margin:0 0 8px;color:var(--accent)}
+.gate{background:var(--surface);color:var(--text)}
+.gate p{color:var(--muted);margin:0 0 16px}
+.live h2{font-family:"Bagel Fat One",Outfit,system-ui,sans-serif;font-weight:400;font-size:26px;margin:0 0 4px;color:var(--accent)}
+.live p{margin:0 0 12px;color:var(--muted);font-size:14px}
+.liveRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.liveRow input{flex:1 1 140px;min-width:0;border:2px solid var(--line);background:var(--bg);border-radius:14px;padding:11px 14px}
+.openGames{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px;font-size:14px;color:var(--muted)}
+.liveBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:600}
+.liveBar .code{font-family:"Bagel Fat One",Outfit,system-ui,sans-serif;font-size:24px;letter-spacing:2px;color:var(--accent);font-weight:400}
+.liveDot{width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px #22c55e33;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.4}}
+.liveBar .grow{flex:1}
+.reacts{display:flex;gap:6px;margin-top:10px}
+.reacts button{border:2px solid var(--line);background:var(--bg);border-radius:12px;font-size:22px;width:46px;height:42px}
+.reacts button:active{transform:scale(.9)}
+.float{position:fixed;bottom:12%;z-index:40;pointer-events:none;text-align:center;animation:floatUp 2.6s ease-out forwards}
+.float b{display:block;font-size:46px;line-height:1}
+.float span{font-size:12px;font-weight:800;background:var(--surface);color:var(--text);border-radius:999px;padding:2px 8px;border:2px solid var(--ink)}
+@keyframes floatUp{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1;transform:translateY(-20px) scale(1.1)}100%{transform:translateY(-55vh) scale(1);opacity:0}}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-weight:700;font-size:14px;z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+.wait{font-weight:700;opacity:.85;margin:6px 0 0}
+.chip em{font-style:normal;color:var(--muted);font-size:12px}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:30;width:100%;height:100%}
+@media (min-width:760px){.tile{min-height:124px}.tile .ic{font-size:24px}.scene{width:72px;height:72px}.f1{transform:rotateY(0deg) translateZ(36px)}.f6{transform:rotateY(180deg) translateZ(36px)}.f3{transform:rotateY(90deg) translateZ(36px)}.f4{transform:rotateY(-90deg) translateZ(36px)}.f2{transform:rotateX(90deg) translateZ(36px)}.f5{transform:rotateX(-90deg) translateZ(36px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="toast" role="status" aria-live="polite"></div>
+<div class="wrap">
+<header>
+  <h1>After Dark</h1>
+  <p class="sub">Party Quest. Pick a level, add your crew, then roll the board or spin for truth or dare.</p>
+  <button class="mute" id="mute" aria-label="Sound on">🔊</button>
+</header>
+
+<nav class="levels" id="levels" aria-label="Level"></nav>
+<p class="lvinfo" id="lvinfo"></p>
+
+<section class="panel live" id="livePanel">
+  <div id="liveOff" hidden>
+    <h2>Play live with friends</h2>
+    <p>Everyone plays on their own phone and sees every roll, spin and card as it happens.</p>
+    <div class="liveRow"><input id="myName" maxlength="16" placeholder="Your name" aria-label="Your name"><button class="btn go chunky" id="hostBtn">Start a live game</button></div>
+    <div class="openGames" id="openGames"></div>
+    <div class="liveRow"><input id="codeIn" maxlength="4" placeholder="Got a room code? Type it here" aria-label="Game code" autocapitalize="off"><button class="btn chunky" id="joinBtn">Join</button></div>
+  </div>
+  <div id="liveOn" hidden>
+    <div class="liveBar"><span class="liveDot"></span><span>Live game</span><span class="code" id="liveCode"></span><span class="grow"></span><button class="btn small go" id="inviteBtn">Invite friends</button><button class="btn small" id="leaveBtn">Leave</button></div>
+    <p id="liveInfo" style="margin:8px 0 0"></p>
+    <div class="reacts" id="reacts"><button aria-label="Laugh">😂</button><button aria-label="Fire">🔥</button><button aria-label="Shocked">😱</button><button aria-label="Cheers">🍻</button><button aria-label="Kiss">💋</button></div>
+  </div>
+  <p id="liveNA" style="margin:0;font-size:14px;color:var(--muted)">Connecting live play…</p>
+</section>
+
+<section class="panel">
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tabBoard" aria-selected="true">🎲 Board game</button>
+    <button class="tab" role="tab" id="tabTod" aria-selected="false">🌀 Spin: truth or dare</button>
+  </div>
+  <div class="players" id="players"></div>
+</section>
+
+<section class="panel" id="boardView">
+  <div class="boardTop">
+    <div class="nowPlaying"><span class="pawn" id="bPawn"></span><div><small id="bLabel">Your roll</small><strong id="bWho"></strong></div></div>
+    <div class="tray">
+      <div class="scene" id="scene"><div class="cube" id="cube"></div></div>
+      <button class="btn go chunky rollBtn" id="roll">Roll!</button>
+    </div>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="bar">
+    <button class="btn small" id="newBoard">Shuffle a new board</button>
+    <button class="btn small" id="resetPos">Everyone back to start</button>
+  </div>
+</section>
+
+<section class="panel tod" id="todView" hidden>
+  <div class="wheelBox">
+    <div class="pointer" id="pointer"></div>
+    <canvas id="wheel" width="680" height="680" aria-label="Player wheel"></canvas>
+    <button class="hub pulse" id="spin">SPIN</button>
+  </div>
+  <div class="todMsg" id="todMsg" aria-live="polite">Tap spin to pick who’s up.</div>
+  <div class="choose" id="choose" hidden>
+    <button class="btn chunky t" data-t="T">Truth</button>
+    <button class="btn chunky d" data-t="D">Dare</button>
+    <button class="btn chunky r" data-t="R">I can’t decide, surprise me</button>
+  </div>
+  <div id="todCardWrap"></div>
+  <p class="wait" id="todWait" hidden></p>
+  <div class="rowBtns" id="todDone" hidden>
+    <button class="btn go chunky" id="todOk">Done! Spin again</button>
+    <button class="btn chunky" id="todSkip">Skip</button>
+  </div>
+  <label class="optRow"><input type="checkbox" id="noRepeat" checked> Don’t pick the same person twice in a row</label>
+</section>
+
+<section class="panel rules">
+  <p><b>House rules.</b> Anyone can skip any card, no questions asked. In drinking levels a skip can cost 2 sips, and any drink counts, including water.</p>
+  <p>Hot levels are only for people who are into it. Ask before touching or kissing anyone, a no is final, and keep photos private.</p>
+  <p id="count"></p>
+</section>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTx">
+  <div class="mcard" id="mcard">
+    <div class="who" id="mWho"></div>
+    <div class="ic" id="mIc"></div>
+    <div class="who" id="mK"></div>
+    <div class="tx" id="mTx"></div>
+    <div class="row" id="mRow"><button class="btn go chunky" id="mOk">Done</button><button class="btn chunky" id="mSkip">Skip</button></div>
+    <p class="wait" id="mWait" hidden></p>
+    <button class="btn chunky" id="mClose" hidden style="margin-top:12px;width:100%">Close</button>
+  </div>
+</div>
+
+<div class="modal" id="gate" role="dialog" aria-modal="true">
+  <div class="mcard gate">
+    <h2>18+ only</h2>
+    <p>This game includes drinking and adult content. Hot Hot is a couples level for 21+. Play only with consenting adults.</p>
+    <div class="row"><button class="btn go chunky" id="gateOk">I’m 18+, let’s play</button><button class="btn chunky" id="gateNo">Leave</button></div>
+  </div>
+</div>
+
+<script>
+const L = {
+fun:{name:"Adult Fun",ic:"🎉",accent:"#ff4f9a",accent2:"#7c3aed",wild:"Drink",
+info:"Silly, social and drinking friendly. Good for warming up.",
+pal:[["#ffc2dd","#2a1534"],["#bdeee9","#2a1534"],["#fff0a8","#2a1534"],["#d9c9ff","#2a1534"],["#c8f0c2","#2a1534"],["#ffd6b0","#2a1534"]],
+T:`What's the most embarrassing thing you've done while tipsy?
+Who here would you call to help you hide a body?
+What's the worst date you've ever been on?
+What song do you secretly know every word to?
+What's the pettiest reason you've stopped talking to someone?
+What's the weirdest thing you've googled this month?
+Who here would survive longest in a zombie apocalypse?
+What's your most useless talent?
+What lie do you tell most often?
+Have you ever faked being sick to skip a plan? What was it?
+What's the worst gift you've ever received?
+What's the cringiest photo in your camera roll right now?
+What's a food you'd never admit you love?
+Who was your first celebrity crush?
+What's the longest you've gone without showering?
+Have you ever sent a text to the wrong person? What did it say?
+What's the strangest place you've fallen asleep?
+What did you do as a kid that your parents still don't know about?
+What's the most money you've wasted on something stupid?
+If you could swap lives with someone here for a day, who?
+What's your biggest red flag?
+What's the dumbest way you've ever hurt yourself?
+What would your autobiography be called?
+What's the most childish thing you still do?
+What app ate the most of your time yesterday, and how long?
+Who here is most likely to become famous, and for what?
+What's the worst haircut you've ever had?
+What's the most awkward thing that's happened to you at work?
+What's the best excuse you've used to leave a party early?
+Have you ever stalked an ex online? How far back did you scroll?
+What's a secret talent nobody here knows about?
+What's the worst thing you've ever cooked for someone?
+Which person here would you want as your lawyer?
+What's the most embarrassing thing you've said to a crush?
+What's your guilty-pleasure TV show?`,
+D:`Do an impression of someone here until they guess who it is.
+Talk in an accent of the group's choice until your next turn.
+Do 10 squats while singing the alphabet.
+Speak only in questions until your next turn.
+Show the last 5 photos in your camera roll.
+Do your best runway walk across the room.
+Read your last sent text out loud.
+Balance a spoon on your nose for 10 seconds, or take 2 sips.
+Give a dramatic reading of the last email you received.
+Dance with no music for 30 seconds.
+Let the group give you a nickname you must answer to all game.
+Hold a plank for 30 seconds.
+Act out a movie scene until the group guesses it.
+Tell a joke. If nobody laughs, drink.
+Do your best evil laugh.
+Swap a piece of clothing with the person on your left until your next turn.
+Make a toast to the person opposite you.
+Freestyle rap about the host for 20 seconds.
+Act like your favourite animal until someone guesses it.
+Let the person on your left restyle your hair.
+Say the alphabet backwards. One sip per mistake.
+Show your screen time to the group.
+Serenade someone with the chorus of a love song.
+Report on this party like a breaking-news anchor.
+Keep a straight face for 30 seconds while everyone tries to crack you.
+Read your last 5 searches out loud.
+Give a 30-second motivational speech to the room.
+Send a voice note to a friend saying only "It's done." and don't reply for 5 minutes.
+Narrate everything you do like a nature documentary until your next turn.
+Do your best celebrity impression.
+Let the group choose your phone wallpaper for the night.
+Try to lick your elbow for 10 seconds.
+Speak like a pirate until your next turn.
+Do a dramatic soap-opera breakup with the person on your right.
+Draw a self-portrait in 20 seconds and show everyone.`,
+G:`Take 3 sips.
+Everyone wearing black drinks.
+Shortest person drinks.
+Tallest person hands out 2 sips.
+Make a rule for the rest of the game.
+Guys drink.
+Girls drink.
+Oldest person drinks.
+Youngest person drinks.
+Anyone with a birthday this month drinks.
+Roll again.
+Flip a coin. Heads you drink, tails you pick who drinks.
+Waterfall! Everyone drinks until you stop.
+Group selfie!
+Cheers to the night. Everyone sips.
+Thumb master: last to put a thumb on the table drinks.
+Last person to touch their nose drinks.
+Drink with your non-dominant hand until your next turn.
+Next person picks who drinks.
+Categories: name one, go around, first to blank drinks.
+Rhyme time: say a word, go around rhyming, first to fail drinks.
+Never have I ever: one round.
+Anyone who arrived late drinks.
+Anyone single drinks.
+Anyone with a tattoo drinks.
+Anyone who's been on a cruise drinks.
+Anyone wearing jewellery drinks.
+Hand out 3 sips however you like.
+Finish your drink (or take 5 sips).
+Question master until your next turn: anyone who answers your question drinks.
+Two truths and a lie. Group votes, wrong guessers drink.
+Rate your ex out of 10, out loud.
+Social! Everyone drinks.
+Swap seats with anyone you like.`},
+
+extreme:{name:"Adult Fun Extreme",ic:"🔥",accent:"#ff6a00",accent2:"#c026d3",wild:"Drink",
+info:"Louder, messier, more embarrassing. Bring your phone and your shame.",
+pal:[["#ff9f5a","#1d1029"],["#ffe14d","#1d1029"],["#7ee0ff","#1d1029"],["#ff7cb8","#1d1029"],["#a2f58d","#1d1029"],["#c9a2ff","#1d1029"]],
+T:`What's the most illegal thing you'll admit to tonight?
+What's the worst thing you've done blackout drunk that you know of?
+Who here would you least want to be stranded with?
+What's the worst thing you've said about someone in this room?
+Have you ever cheated on a test, a game or a partner?
+What's the most embarrassing thing you've been caught doing?
+What's a secret you've never told your best friend?
+Have you ever had a crush on a friend's partner?
+What's the meanest thing you've ever done to an ex?
+What's the biggest lie you've told someone here?
+What's your most toxic trait, honestly?
+What's the worst thing you've done at a wedding?
+What's the grossest thing you've eaten for money or a dare?
+Who here has the worst taste in partners?
+Have you ever ghosted someone? Why?
+What's the most embarrassing thing you've ever posted online?
+What's a rumour about you that's actually true?
+What's the most you've spent in one night out?
+Who here would you trust least with a secret?
+What did you do on your worst-ever hangover?
+Have you ever been kicked out of somewhere? Where and why?
+What's something you've stolen?
+What's the worst DM you've ever sent?
+Have you ever read someone's messages without them knowing?
+What's the weirdest thing you do when you're home alone?
+What's the most embarrassing reason you've cried?
+Have you ever lied to get out of paying for something?
+What's the worst first impression you've ever made?
+What's a habit you'd be mortified for people to discover?
+What's the most desperate thing you've done for attention?
+Who did you last drunk-text and what did you say?
+What's something you pretend to like but actually hate?
+If this group voted you out, what would the reason be?
+What's the worst thing you've done to a roommate?
+Who here have you secretly been annoyed with lately, and why?`,
+D:`Let the group send one text from your phone to anyone they choose (one veto allowed).
+Post an unflattering selfie on your story for 10 minutes.
+Let someone scroll your camera roll for 30 seconds.
+Call a contact the group picks and announce fake big news.
+Take a shot without using your hands.
+Do your most seductive dance to a song the group picks.
+Let the group write a word on your arm in pen.
+Read your last 3 searches out loud.
+Wear a sock on one hand until your next turn.
+Sing a full chorus at the top of your lungs.
+Let the person on your left pick your profile picture for an hour.
+Show the last profile you stalked on social media.
+Do 15 push-ups or take 2 shots.
+Talk in a baby voice until your next turn.
+Let someone else reply to your next text.
+Make a heartfelt love confession to the nearest object.
+Act out your worst ever date.
+Use a word the group picks in every sentence for 3 turns.
+Do a dramatic slow-motion fall.
+Drink from someone else's glass. They choose.
+Take a shot, then say the alphabet without pausing.
+Prank call a friend: you've joined a cult. Reveal after a minute.
+Everyone asks you one question. Answer all of them honestly.
+Show your most recent screenshot.
+Imitate every person here in one sentence each.
+Show the oldest photo of yourself on your phone.
+Let the group rename a contact in your phone for the night.
+Twerk for 15 seconds.
+Balance your drink on your head and walk across the room.
+Let someone wreck your hair and keep it like that all night.
+Eat a spoon of hot sauce or mustard, or take 2 shots.
+Confess something you've never said out loud.
+Let the group pick an emoji you must text your boss or teacher (vetoes allowed).
+Do your best stand-up comedy minute.
+Let the person on your right choose your next 3 drinks.`,
+G:`Take a shot.
+Everyone points at the biggest lightweight. They drink 2.
+Double drinks until your next turn.
+Pick a drinking buddy: when you drink, they drink, all game.
+Finish your drink.
+Flip a coin. Heads you take a shot, tails you pick someone who does.
+Waterfall! No stopping until the person before you stops.
+Last one to stand up takes a shot.
+Anyone who's been kicked out of a bar drinks.
+Anyone who's texted an ex this month drinks 2.
+Anyone who's gone to work hungover drinks.
+Group votes: most likely to end up in jail. They take a shot.
+Group votes: worst dancer. Dance 20 seconds or drink 3.
+Hot seat: everyone asks you a question. Answer or drink for each.
+Make an evil rule.
+Roll again.
+Hand out 5 sips.
+Swap drinks with the person on your left.
+Everyone with lower phone battery than you drinks.
+Phone stack: all phones in the middle until your next turn. First to touch one drinks 3.
+Never have I ever: 3 rounds.
+Rate everyone's outfit 1–10, out loud.
+Social shot! Everyone.
+Chug race: you versus anyone you pick. Loser drinks again.
+Categories, but every miss costs 2 sips.
+Name 5 exes or crushes in 10 seconds, or drink.
+Accent rule: everyone talks in one accent until your next turn.
+Everyone who laughed in the last minute drinks.
+Last person to raise a hand drinks 2.
+Group votes: who's the messiest drunk? They take a shot.`},
+
+soft:{name:"Adult Hot Soft",ic:"💋",accent:"#e8457c",accent2:"#f59e0b",wild:"Flirt",
+info:"Flirty and sweet. Crushes, compliments and a little blushing.",
+pal:[["#ffd1e0","#3b0f24"],["#ffe9c7","#3b0f24"],["#f5bcd0","#3b0f24"],["#e7d4ff","#3b0f24"],["#ffc9c9","#3b0f24"],["#fff3f7","#3b0f24"]],
+T:`Who here would you most like to go on a date with?
+What's the first thing you notice about someone you fancy?
+What personality trait turns you on the most?
+What's your biggest turn-off?
+Describe your perfect first kiss.
+What's the most romantic thing someone has done for you?
+Have you ever had a crush on someone in this room?
+What's your go-to flirting move?
+What's the cheesiest pickup line that actually worked on you?
+What's the flirtiest text you've ever sent?
+Who was your most memorable kiss?
+Which celebrity would you leave everyone for?
+What's your love language?
+What outfit makes you feel the most attractive?
+Do you prefer making the first move or being chased?
+What's the longest you've gone without kissing anyone?
+Which accent do you find most attractive?
+What's a compliment you've never forgotten?
+What's the boldest thing you've done to get someone's attention?
+Rate your own flirting skills from 1 to 10.
+What's your idea of a perfect date night?
+Have you ever had a holiday romance?
+What instantly makes someone more attractive?
+Who here has the best smile?
+What's the most awkward kiss you've had?
+What's your type, honestly?
+Have you ever had a dream about someone here?
+What's the sweetest thing you've done for a crush?
+Do you sleep in pyjamas or nothing at all?
+What's the most spontaneous romantic thing you've done?
+Have you ever slid into someone's DMs? Did it work?
+Which part of you gets complimented the most?
+What's your biggest dating dealbreaker?
+Who would you kiss at midnight on New Year's if you could pick anyone here?
+What's the most attractive thing someone can do on a first date?`,
+D:`Use your best pickup line on the person to your left.
+Give everyone here one genuine compliment.
+Wink at someone and hold eye contact for 10 seconds.
+Whisper a compliment in someone's ear.
+Give someone a 30-second shoulder massage (ask first).
+Do your sexiest walk across the room.
+Slow dance with someone of your choice for 30 seconds.
+Kiss someone on the cheek, if they're happy with it.
+Show your most flattering selfie.
+Read your last flirty text out loud.
+Hold hands with someone until your next turn.
+Blow a kiss to the person you find most attractive here.
+Describe someone here using only flirty words.
+Sit on someone's lap for one round, if they agree.
+Give your best smouldering look while the group takes a photo.
+Let someone feed you a snack.
+Give someone here a 20-second love-letter speech.
+Hug the person opposite you for 10 seconds.
+Act out how you'd ask someone out.
+Flirt with an inanimate object for 30 seconds.
+Recreate a famous romantic movie scene with someone.
+Make a fake marriage proposal to someone the group picks.
+Give someone a forehead kiss, with their okay.
+Feed someone a grape as romantically as possible.
+Describe your dream date with someone here without naming them. The group guesses.
+Let someone draw a heart on your wrist.
+Do a rose-ceremony speech and hand your "rose" to someone.
+Text your crush a single 😉.
+Brush someone's hair out of their face, slowly.
+Show your dating profile, or describe it honestly.
+Do a 15-second sensual dance.
+Trade an accessory with someone you'd date.
+Say "I love you" to three people in three different ways.
+Give someone a compliment in your most seductive voice.
+Let the group choose who you text "thinking of you" to.`,
+G:`Everyone who's single drinks.
+Everyone who's in love drinks.
+Anyone who kissed someone this month drinks.
+Anyone who went on a date this week drinks.
+Anyone who's had a crush on a friend drinks.
+Point at someone. They give you a compliment.
+Pick a partner. You drink together all game.
+Group votes: best kisser (just guess). They drink.
+Group votes: biggest flirt. They take 2.
+Everyone rates their flirting 1–10. Lowest drinks.
+Never have I ever, flirty edition: one round.
+Cheers to love. Everyone sips.
+Make a flirty rule.
+Roll again.
+Anyone wearing red drinks.
+Anyone who's used a dating app drinks.
+Swap seats so you're beside your crush (or the snacks).
+Last person to blow a kiss drinks.
+Two truths and a lie: romance edition.
+Take 2 sips and say who you'd text right now.
+Everyone shares their celebrity hall pass.`},
+
+hard:{name:"Adult Hot Hard",ic:"😈",accent:"#d6007a",accent2:"#6d28d9",wild:"Naughty",
+info:"Naughty party level. Dirty truths, cheeky dares, clothes may come off. Consent always.",
+pal:[["#ff5fa2","#ffffff"],["#9b5cf6","#ffffff"],["#ffd23f","#24082a"],["#2dd4bf","#24082a"],["#fb7185","#24082a"],["#f0abfc","#24082a"]],
+T:`Have you ever hooked up with someone in this room?
+What's your body count? Answer or drink.
+What's the wildest place you've hooked up?
+Have you ever had a one-night stand?
+What's your biggest fantasy?
+What's the naughtiest thing you've done in public?
+Have you ever sent a nude?
+What's the most embarrassing thing that's happened in bed?
+Who here would you most want to kiss?
+What's the kinkiest thing you've tried?
+Have you ever been caught in the act?
+What's your favourite position?
+Have you ever faked it?
+What's the longest you've gone without sex?
+What's the shortest time between meeting someone and hooking up?
+Have you ever had a friends-with-benefits?
+What's something you'd love to try but haven't yet?
+Have you ever had a threesome, or wanted one?
+What's the naughtiest text you've ever sent?
+Who here do you think is the wildest in bed?
+Have you ever hooked up with an ex after the breakup?
+What's the dirtiest dream you've ever had?
+What's your biggest turn-on in bed?
+Lights on or lights off?
+What's the sexiest thing someone can wear?
+Have you ever hooked up at a party like this?
+Have you ever sexted someone you'd never met?
+What's the cheekiest photo on your phone right now? Describe it.
+Morning, afternoon or night?
+Have you ever tried role-play? As what?
+Have you ever hooked up in a car?
+Who's the best kisser you've ever had, and why?
+Rate your skills in bed, honestly, from 1 to 10.
+What's the most spontaneous hook-up you've had?
+What's one thing that will always get you in the mood?`,
+D:`Remove one item of clothing (accessories count once).
+Give someone a 20-second lap dance, if they're up for it.
+Kiss the person on your left, or take 2 shots.
+Take a body shot off someone willing.
+Whisper the dirtiest thing you can think of to the person on your right.
+Say the naughtiest thing on your mind right now.
+Show your last sexy photo, or take a shot.
+Do your sexiest dance for 30 seconds.
+Moan dramatically for 5 seconds.
+Take a shot from someone's hand without using yours.
+Sit on someone's lap until your next turn, if they agree.
+Make out with someone willing for 10 seconds, or drink twice.
+Let someone choose an item of your clothing to remove.
+Demonstrate your best kissing technique on your own hand.
+Show the group your search history, or drink.
+Act out your favourite position with a pillow, clothes on.
+Pass an ice cube mouth to mouth with someone willing.
+Kiss someone's neck, if they say yes.
+Do a striptease of one item to music.
+Blindfold yourself and guess who just kissed your cheek.
+Read your last dirty or flirty text out loud.
+Describe your last hook-up in 3 words.
+Let the person on your right pick who you kiss, or drink 3.
+Seven seconds in heaven with someone willing.
+Swap an item of clothing with someone.
+Give someone a slow, sensual shoulder massage for 1 minute.
+Suck a lollipop or ice cube as seductively as you can.
+Gently bite someone's lip, if they agree.
+Give someone a playful spank, with their okay.
+Show your underwear colour, or drink 2.
+Rate everyone's sexiness 1–10, out loud.
+Put on your best bedroom voice and order a drink from someone.
+Let someone write a cheeky word on your arm.
+Recreate your best "come here" look at someone across the room.
+Kiss someone anywhere above the shoulders, their choice.`,
+G:`Anyone who's slept with someone here drinks.
+Anyone who's had a one-night stand takes a shot.
+Anyone who hooked up this month drinks.
+Anyone who's had a threesome drinks.
+Anyone wearing matching underwear drinks.
+Anyone with a tattoo below the waist drinks twice.
+Anyone who sent a nude this year drinks.
+Flip a coin. Heads you drink, tails you remove one item.
+Roll again and remove one item of clothing.
+Roll again and kiss someone (with consent).
+Last person to touch the dice removes one item.
+Make a dirty rule. It stays for the game.
+Group votes: wildest in bed. They drink 2.
+Group votes: best body. They choose who removes an item.
+Never have I ever, naughty edition: 3 rounds.
+Spin a bottle. Whoever it lands on chooses kiss, dare or drink.
+Everyone removes one item or takes a shot.
+Cheers to bad decisions. Everyone drinks.
+Pick two people to kiss, or both of them drink.
+Two truths and a lie, and at least one must be dirty.`},
+
+hothot:{name:"Adult Hot Hot",ic:"❤️‍🔥",accent:"#c8102e",accent2:"#d4a017",wild:"Bonus",
+info:"Couples level for 21+. Intimate, seductive dares for two. Either partner can skip anything.",
+pal:[["#f6c1d3","#3a0d1a"],["#3a0d1a","#ffd9a0"],["#f3d68a","#3a0d1a"],["#7a0f2a","#ffe4ec"],["#1c0a10","#f3d68a"],["#ffb3c7","#3a0d1a"]],
+T:`What's your biggest fantasy about us?
+What turns you on most about me?
+What's one thing you've never told me about the bedroom?
+What's your naughtiest dream about us?
+What's your favourite thing I do to you?
+Where's one place you'd love to do it with me?
+When did you first want to kiss me?
+What's the sexiest outfit you've seen me in?
+What's our hottest memory together?
+What's something new you'd like to try with me?
+Which part of my body is your favourite?
+What's the best kiss we've ever had?
+What do I do that drives you wild without me realising?
+Describe our perfect night in three words.
+Tell me a fantasy you've been shy to share.
+Morning or night with me, and why?
+What's the most daring place you'd try with me?
+How do you most love to be touched?
+If we had a whole weekend alone, what would we do?
+What song makes you think of us in bed?
+What role-play would you try with me?
+What's one thing I should do more often?
+What's the sexiest text I've ever sent you?
+What did you think the first time you saw me undressed?
+Is there a toy or prop you'd like us to try?
+Slow and romantic or fast and wild tonight?
+What do you want me to whisper to you?
+Where do you want more kisses?
+What's one rule you'd set for tonight?
+What's the moment you felt most wanted by me?`,
+D:`Give your partner a slow 10-second kiss.
+Give your partner a sensual massage for 2 minutes.
+Remove one item of clothing. You choose.
+Whisper something dirty in your partner's ear.
+Kiss your partner's neck for 10 seconds.
+Blindfold your partner and kiss them somewhere unexpected.
+Tease your partner with an ice cube or a cold drink for 1 minute.
+Give your partner a lap dance for 1 minute. Music allowed.
+Let your partner remove one item of your clothing, using only their mouth.
+Give or receive a hickey, in a spot of your partner's choice.
+Feed your partner something sweet using only your mouth.
+Take turns giving 5 kisses in places of each other's choice.
+Make out for one full minute.
+Strip tease for one song, one item at a time.
+Use only kisses and hands for 2 minutes. No talking.
+Lick something sweet off your partner (whipped cream, chocolate…).
+Tie your partner's hands with a soft scarf for the next 3 turns.
+Speak in your sexiest voice for the next 3 turns.
+Massage your partner with oil or lotion for 3 minutes.
+Kiss your way down from their neck to a spot they choose.
+Let your partner pick a spot for a kiss.
+Trace your partner's body with one finger for 1 minute.
+Describe exactly what you want to do to your partner tonight.
+Take a sexy photo together, and keep it private.
+Send your partner a sexy text while sitting next to them.
+Kiss your partner for 1 minute without using your hands.
+Slowly undress your partner down to their underwear.
+Let your partner do whatever they want to you for 1 minute, within your limits.
+Show your partner exactly how you like to be kissed.
+Try a new position tonight. Your choice.
+Take a bath or shower together, or plan one for tonight.
+Breathe softly on your partner's neck for 30 seconds without touching.`,
+G:`Take a shot together.
+You both remove one item.
+Roll again, or choose any card on the board.
+Swap: your partner plays your next card.
+Kiss once for every pip on the die you rolled.
+Two minutes of teasing, but no kissing on the lips.
+Pick a toy or prop to use, if you have one.
+Both roll. Higher roll picks the next dare.
+Slow dance in your underwear for one song.
+Take turns: one compliment, one kiss, three rounds.
+Drink from each other's glass.
+Say what you're thinking right now, honestly.
+Pause and cuddle for one minute.
+Partner's choice: kiss, strip or sip.`}
+};
+const fix = s => s.replace(/'/g,"’").replace(/"([^"]*)"/g,"“$1”");
+for(const k in L){for(const d of ["T","D","G"]) L[k][d]=L[k][d].split("\n").map(x=>fix(x.trim())).filter(Boolean)}
+const COLORS=["#ff4f9a","#3b82f6","#f59e0b","#10b981","#8b5cf6","#ef4444","#06b6d4","#84cc16","#ec4899","#f97316"];
+const REACTS=["😂","🔥","😱","🍻","💋"];
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const REDUCE=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let level=store.get("ad_level","fun"); if(!L[level]) level="fun";
+let localPlayers=store.get("ad_players",["Player 1","Player 2"]); if(!Array.isArray(localPlayers)||!localPlayers.length) localPlayers=["Player 1","Player 2"];
+let players=localPlayers.slice();
+let muted=store.get("ad_muted",false),myName=store.get("ad_name","");
+let turn=0,pos=players.map(()=>-1),board=[],decks={},pending=null,mode="board";
+let G=null; // live game
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function drawRef(type){const key=level+type;if(!decks[key]||!decks[key].length) decks[key]=shuffle([...L[level][type].keys()]);return type+decks[key].pop()}
+function boardRef(){const r=Math.random();return drawRef(r<.33?"T":r<.66?"D":"G")}
+function C(ref){const t=String(ref||"T0")[0],i=+String(ref).slice(1)||0,arr=L[level][t]||L[level].T,text=arr[i]||arr[0];return{ref,type:L[level][t]?t:"T",text,again:/^Roll again/.test(text)}}
+function meta(c){const lv=L[level];return c.type==="T"?{k:"Truth",ic:"💬"}:c.type==="D"?{k:"Dare",ic:lv.ic}:{k:lv.wild,ic:c.again?"🎲":"🥂"}}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function initial(p){return esc((String(p).trim()[0]||"?").toUpperCase())}
+function pawn(i,cls=""){return `<span class="pawn ${cls}" style="background:${COLORS[i%COLORS.length]}">${initial(players[i]||"?")}</span>`}
+const cur=()=>players.length?turn%players.length:0;
+const cleanName=s=>String(s||"").replace(/[\u0000-\u001f]/g,"").trim().slice(0,16)||"Player";
+let toastT;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2600)}
+
+/* ---------- sound ---------- */
+let ac=null;
+function audio(){if(muted) return null;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended") ac.resume();return ac}catch(e){return null}}
+function beep(freq,dur=.05,type="square",vol=.06,when=0){const a=audio();if(!a) return;const o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,a.currentTime+when);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+when+dur);o.connect(g).connect(a.destination);o.start(a.currentTime+when);o.stop(a.currentTime+when+dur+.02)}
+const sTick=()=>beep(900+Math.random()*200,.03,"square",.04);
+const sClack=()=>{for(let i=0;i<6;i++) beep(180+Math.random()*260,.04,"triangle",.09,i*.11+Math.random()*.05)};
+const sWin=()=>{[523,659,784,1047].forEach((f,i)=>beep(f,.16,"triangle",.09,i*.11))};
+const sHop=()=>beep(600,.05,"sine",.07);
+const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
+
+/* ---------- confetti & reactions ---------- */
+const fx=$("fx"),fctx=fx.getContext("2d");let parts=[],fxOn=false;
+function sizeFx(){fx.width=innerWidth*devicePixelRatio;fx.height=innerHeight*devicePixelRatio}
+addEventListener("resize",sizeFx);sizeFx();
+function burst(x,y,n=80){if(REDUCE) return;const cs=[...COLORS,"#fff","#ffd23f"];for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=4+Math.random()*9;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-6,r:4+Math.random()*5,c:cs[i%cs.length],rot:Math.random()*6,vr:(Math.random()-.5)*.4,life:90+Math.random()*40})}if(!fxOn){fxOn=true;requestAnimationFrame(fxLoop)}}
+function fxLoop(){const d=devicePixelRatio;fctx.clearRect(0,0,fx.width,fx.height);parts=parts.filter(p=>p.life-->0);for(const p of parts){p.vy+=.3;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;fctx.save();fctx.translate(p.x*d,p.y*d);fctx.rotate(p.rot);fctx.fillStyle=p.c;fctx.globalAlpha=Math.min(1,p.life/30);fctx.fillRect(-p.r*d/2,-p.r*d/4,p.r*d,p.r*d/2);fctx.restore()}if(parts.length) requestAnimationFrame(fxLoop);else{fxOn=false;fctx.clearRect(0,0,fx.width,fx.height)}}
+function burstAt(el,n){const r=el.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,n)}
+function floatReact(e,name){if(!REACTS.includes(e)) return;const d=document.createElement("div");d.className="float";d.style.left=(10+Math.random()*75)+"vw";
+  const b=document.createElement("b");b.textContent=e;const s=document.createElement("span");s.textContent=cleanName(name);d.append(b,s);document.body.append(d);setTimeout(()=>d.remove(),2700);sHop()}
+
+/* ---------- common UI ---------- */
+function applyTheme(){const lv=L[level];document.documentElement.style.setProperty("--accent",lv.accent);document.documentElement.style.setProperty("--accent2",lv.accent2)}
+function renderLevels(){
+  $("levels").innerHTML=Object.entries(L).map(([k,v])=>`<button class="lv" data-k="${k}" aria-pressed="${k===level}">${v.ic} ${v.name}</button>`).join("");
+  $("lvinfo").textContent=L[level].info+(G&&!G.isHost?" The host picks the level.":"");
+  const n=Object.values(L).reduce((s,v)=>s+v.T.length+v.D.length+v.G.length,0),m=L[level].T.length+L[level].D.length+L[level].G.length;
+  $("count").textContent=`${m} cards in this level, ${n} across all five.`;
+}
+function renderPlayers(){
+  const c=cur(),live=!!(G&&G.st),s=live?G.st:null;
+  $("players").innerHTML=players.map((p,i)=>{const peer=s&&s.order[i],isMe=live&&peer===me(),host=live&&peer===s.host;
+    return `<span class="chip ${i===c&&mode==="board"?"now":""}">${pawn(i)}${esc(p)}${isMe?" <em>you</em>":""}${host?" 👑":""}${live?"":`<button aria-label="Remove ${esc(p)}" data-rm="${i}">×</button>`}</span>`}).join("")+
+    (G?"":`<form class="addp" id="addForm"><input id="pname" maxlength="16" placeholder="Add a player" aria-label="Player name"><button class="btn small go">Add</button></form>`);
+  const name=players[c]||"…",mine=live&&s.order[c]===me();
+  $("bWho").textContent=mine?"Your turn!":name;$("bLabel").textContent=live?(mine?name:"Waiting for"):"Your roll";
+  $("bPawn").style.background=COLORS[c%COLORS.length];$("bPawn").textContent=(String(name).trim()[0]||"?").toUpperCase();
+  if(!spinning) drawWheel();
+  updateControls();
+}
+function updateControls(){
+  const live=G&&G.st;
+  let canRoll=!rolling&&!pending;
+  if(live){const s=G.st;canRoll=canRoll&&!G.busy&&s.phase==="idle"&&s.order.length>0&&s.order[s.turn%s.order.length]===me()}
+  $("roll").disabled=!canRoll;$("roll").textContent=(live&&!canRoll&&!rolling)?"Wait…":"Roll!";
+  let canSpin=!spinning;
+  if(live){canSpin=canSpin&&!G.busy&&G.st.phase==="idle"&&G.st.order.length>1}
+  $("spin").disabled=!canSpin;$("spin").classList.toggle("pulse",canSpin);
+}
+
+/* ---------- board ---------- */
+const COLS=()=>innerWidth<560?4:6;
+const cellToSq=c=>{const n=COLS(),r=c/n|0,col=c%n;return r*n+(r%2?n-1-col:col)};
+let lastCols=COLS();addEventListener("resize",()=>{if(COLS()!==lastCols){lastCols=COLS();renderBoard()}});
+function newBoard(){board=Array.from({length:36},boardRef);renderBoard()}
+function renderBoard(o={}){
+  const pal=L[level].pal;let html="";
+  for(let cell=0;cell<36;cell++){const i=cellToSq(cell),cd=C(board[i]),m=meta(cd),[bg,ink]=pal[i%pal.length];
+    const toks=players.map((p,j)=>pos[j]===i?pawn(j,o.hop===j?"hop":""):"").join("");
+    const cls=[o.land===i?"here":"",o.fresh===i?"fresh":"",o.path&&o.path.includes(i)?"path":""].join(" ");
+    html+=`<button class="tile ${cls}" data-i="${i}" style="background:${bg};color:${ink}" aria-label="Square ${i+1}: ${m.k}. ${esc(cd.text)}"><span class="n">${i+1}</span><span class="tokens">${toks}</span><span class="ic">${m.ic}</span><span class="k">${m.k}</span><span class="tx">${esc(cd.text)}</span></button>`}
+  $("board").innerHTML=html;
+}
+const PIPS={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
+$("cube").innerHTML=[1,2,3,4,5,6].map(n=>`<div class="face f${n}">${PIPS[n].map(p=>`<span class="pip" style="grid-row:${((p-1)/3|0)+1};grid-column:${(p-1)%3+1}"></span>`).join("")}</div>`).join("");
+const SHOW={1:[0,0],2:[-90,0],3:[0,-90],4:[0,90],5:[90,0],6:[0,180]};
+let spinX=0,spinY=0,rolling=false;
+function setCube(n,extra){const [bx,by]=SHOW[n];if(extra){spinX+=2+(Math.random()*2|0);spinY+=2+(Math.random()*2|0)}$("cube").style.transform=`rotateX(${spinX*360+bx}deg) rotateY(${spinY*360+by}deg)`}
+setCube(1,false);
+function animRoll(pi,from,d,done){
+  rolling=true;updateControls();const sc=$("scene");
+  sc.classList.remove("toss");void sc.offsetWidth;sc.classList.add("toss");
+  setCube(d,true);sClack();buzz(30);
+  setTimeout(()=>moveSteps(pi,from,d,()=>{rolling=false;updateControls();done()}),REDUCE?50:1300);
+}
+function moveSteps(pi,from,d,done){
+  pos[pi]=from;const path=[];let step=0;
+  const go=()=>{pos[pi]=(pos[pi]+1)%36;path.push(pos[pi]);step++;sHop();renderBoard({hop:pi,path});
+    if(step<d) setTimeout(go,REDUCE?0:230);
+    else{renderBoard({land:pos[pi]});const t=document.querySelector(`.tile[data-i="${pos[pi]}"]`);if(t) burstAt(t,40);sWin();buzz([20,40,20]);setTimeout(done,REDUCE?0:650)}};
+  go();
+}
+function roll(){
+  audio();
+  if(G){sendAct({t:"roll"});$("roll").disabled=true;return}
+  if(rolling||pending) return;
+  const c=cur(),d=1+(Math.random()*6|0);
+  animRoll(c,pos[c],d,()=>openModal(C(board[pos[c]]),pos[c],{mine:true}));
+}
+function openModal(c,idx,o={}){
+  if(!G&&!o.preview) pending={c,idx};
+  const m=meta(c),pal=L[level].pal[idx%6];
+  $("mcard").style.background=pal[0];$("mcard").style.color=pal[1];
+  $("mWho").textContent=o.preview?`Square ${idx+1}`:`${o.ownerName||players[cur()]}, square ${idx+1}`;
+  $("mIc").textContent=m.ic;$("mK").textContent=m.k;$("mTx").textContent=c.text;
+  const showBtns=!o.preview&&o.mine;
+  $("mRow").hidden=!showBtns;$("mOk").disabled=false;$("mSkip").disabled=false;
+  $("mWait").hidden=!!(o.preview||o.mine);$("mWait").textContent=`Waiting for ${o.ownerName||"them"} to do it…`;
+  $("mClose").hidden=showBtns;$("mClose").textContent=o.preview?"Close":"Hide";
+  $("modal").classList.add("open");(showBtns?$("mOk"):$("mClose")).focus();
+}
+function closeModalUI(){$("modal").classList.remove("open");pending=null;updateControls()}
+function closeLocal(done){
+  $("modal").classList.remove("open");if(!pending) return;
+  const {c,idx}=pending;pending=null;
+  if(done) burst(innerWidth/2,innerHeight/2,60);
+  board[idx]=boardRef();if(!c.again) turn++;
+  renderPlayers();renderBoard({fresh:idx});
+}
+function modalAnswer(done){
+  if(G){if($("mRow").hidden) return;$("mOk").disabled=true;$("mSkip").disabled=true;sendAct({t:done?"done":"skip"});return}
+  closeLocal(done);
+}
+
+/* ---------- spinner ---------- */
+const wc=$("wheel"),wx=wc.getContext("2d");let rot=0,spinning=false,lastPick=-1,picked=-1;
+const TAU=Math.PI*2;
+function drawWheel(){
+  const n=Math.max(players.length,1),R0=wc.width/2,seg=TAU/n;wx.clearRect(0,0,wc.width,wc.height);
+  wx.save();wx.translate(R0,R0);wx.rotate(rot);
+  for(let i=0;i<n;i++){const a0=-Math.PI/2+i*seg;
+    wx.beginPath();wx.moveTo(0,0);wx.arc(0,0,R0-6,a0,a0+seg);wx.closePath();
+    wx.fillStyle=COLORS[i%COLORS.length];wx.fill();wx.lineWidth=6;wx.strokeStyle="#1b0f22";wx.stroke();
+    wx.save();wx.rotate(a0+seg/2);wx.textAlign="right";wx.textBaseline="middle";wx.fillStyle="#fff";
+    const fs=Math.max(22,Math.min(44,300/n+14));wx.font=`900 ${fs}px Outfit, system-ui, sans-serif`;wx.lineWidth=7;wx.strokeStyle="#1b0f22";
+    let name=String(players[i]||"…");if(name.length>11) name=name.slice(0,10)+"…";
+    wx.strokeText(name,R0-34,0);wx.fillText(name,R0-34,0);wx.restore()}
+  for(let i=0;i<n*2;i++){const a=-Math.PI/2+i*seg/2;wx.beginPath();wx.arc(Math.cos(a)*(R0-16),Math.sin(a)*(R0-16),7,0,TAU);wx.fillStyle=i%2?"#fff":"#ffd23f";wx.fill()}
+  wx.restore();
+  wx.beginPath();wx.arc(R0,R0,R0-4,0,TAU);wx.lineWidth=8;wx.strokeStyle="#1b0f22";wx.stroke();
+}
+const idxAt=r=>{const n=Math.max(players.length,1),seg=TAU/n;return Math.floor((((-r)%TAU)+TAU)%TAU/seg)%n};
+function setWheelTo(w){const seg=TAU/Math.max(players.length,1);rot=-(w+.5)*seg;drawWheel()}
+function spin(){
+  audio();
+  if(G){if(G.st&&G.st.order.length<2){$("todMsg").textContent="Waiting for at least 2 players to join.";return}sendAct({t:"spin"});$("spin").disabled=true;return}
+  if(spinning) return;const n=players.length;
+  if(n<2){$("todMsg").textContent="Add at least 2 players to spin.";return}
+  let w;do{w=Math.random()*n|0}while($("noRepeat").checked&&n>2&&w===lastPick);
+  lastPick=w;spinTo(w,5+(Math.random()*3|0),Math.random()-.5,()=>showChoose(w));
+}
+function spinTo(w,turns,jit,done){
+  audio();spinning=true;updateControls();
+  $("choose").hidden=true;$("todDone").hidden=true;$("todWait").hidden=true;$("todCardWrap").innerHTML="";$("todMsg").textContent="Round and round it goes…";
+  const n=Math.max(players.length,1),seg=TAU/n,target=-(w+.5)*seg+jit*seg*.7;
+  const base=((target-rot)%TAU+TAU)%TAU,total=base+TAU*turns;
+  const start=rot,dur=REDUCE?10:4800+Math.abs(jit)*900,t0=performance.now();let lastIdx=idxAt(rot);
+  const ease=t=>1-Math.pow(1-t,4);
+  const frame=now=>{const t=Math.min(1,(now-t0)/dur);rot=start+total*ease(t);drawWheel();
+    const k=idxAt(rot);if(k!==lastIdx){lastIdx=k;sTick();const p=$("pointer");p.classList.remove("tick");void p.offsetWidth;p.classList.add("tick")}
+    if(t<1) requestAnimationFrame(frame);else{spinning=false;sWin();buzz([30,50,30]);burstAt($("wheel"),110);updateControls();done()}};
+  requestAnimationFrame(frame);
+}
+function showChoose(w){
+  picked=w;const name=players[w]||"Someone",canPick=!G||(G.st&&G.st.order[w]===me());
+  $("todMsg").innerHTML=`🎯 <span style="color:${COLORS[w%COLORS.length]}">${esc(canPick&&G?"You":name)}</span>, truth or dare?`;
+  $("choose").hidden=false;$("choose").querySelectorAll("button").forEach(b=>b.disabled=!canPick);
+  $("todWait").hidden=canPick;$("todWait").textContent=`Waiting for ${name} to choose…`;
+  if(canPick) $("choose").querySelector(".t").focus();
+}
+function todPick(t){
+  if(G){$("choose").querySelectorAll("button").forEach(b=>b.disabled=true);sendAct({t:"pick",v:t});return}
+  if(picked<0) return;const type=t==="R"?(Math.random()<.5?"T":"D"):t;
+  showTodCard(drawRef(type),type,t==="R",picked,true);
+}
+function showTodCard(ref,type,surprise,wi,mine){
+  const c=C(ref),m=meta(c),pal=L[level].pal[(c.text.length)%6],name=players[wi]||"Someone";
+  $("choose").hidden=true;
+  $("todMsg").textContent=surprise?`The game chose ${type==="T"?"truth":"dare"} for ${name}!`:`${name} picked ${type==="T"?"truth":"dare"}.`;
+  $("todCardWrap").innerHTML=`<div class="bigcard" style="background:${pal[0]};color:${pal[1]}"><div class="ic">${m.ic}</div><div class="k">${m.k}</div><div class="tx">${esc(c.text)}</div></div>`;
+  $("todDone").hidden=!mine;$("todOk").disabled=false;$("todSkip").disabled=false;
+  $("todWait").hidden=mine;$("todWait").textContent=`Waiting for ${name} to do it…`;
+  sHop();if(mine) $("todOk").focus();
+}
+function todReset(msg){picked=-1;$("choose").hidden=true;$("todDone").hidden=true;$("todWait").hidden=true;$("todCardWrap").innerHTML="";$("todMsg").textContent=msg||"Tap spin to pick who’s up.";updateControls()}
+function todAnswer(done){
+  if(G){$("todOk").disabled=true;$("todSkip").disabled=true;sendAct({t:done?"done":"skip"});return}
+  if(done) burst(innerWidth/2,innerHeight/2,50);todReset(done?"Nice. Spin again!":"Skipped. Spin again!");
+}
+
+/* ---------- mode ---------- */
+function setMode(m,fromState){
+  if(G&&!fromState){if(!G.isHost){toast("Only the host can switch games");return}const s=G.st;s.mode=m;s.phase="idle";s.w=null;s.ev={id:evId(),type:"reset"};publish();return}
+  mode=m;$("tabBoard").setAttribute("aria-selected",m==="board");$("tabTod").setAttribute("aria-selected",m==="tod");$("boardView").hidden=m!=="board";$("todView").hidden=m!=="tod";renderPlayers();
+}
+
+/* ---------- live play (PeerJS, no login) ---------- */
+const ICE={iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:global.stun.twilio.com:3478"},
+ {urls:"turn:openrelay.metered.ca:80",username:"openrelayproject",credential:"openrelayproject"},
+ {urls:"turn:openrelay.metered.ca:443",username:"openrelayproject",credential:"openrelayproject"},
+ {urls:"turn:openrelay.metered.ca:443?transport=tcp",username:"openrelayproject",credential:"openrelayproject"}]};
+function netJoin(code,asHost){return new Promise((resolve,reject)=>{
+  const id="afterdark-party-"+code;let peer,myId=null,mine={},table={},hostConn=null,done=false,closed=false;
+  const hs=[],errHs=[],conns=new Map();
+  const snap=()=>Object.entries(table).map(([p,pr])=>({peer:p,presence:pr||{},isMe:p===myId,sameTab:p===myId,kind:"viewer",by:null,guest:false,updatedAt:Date.now()}));
+  const fire=()=>setTimeout(()=>{if(closed) return;const ps=snap();hs.forEach(h=>h({peers:ps,joined:[],left:[],updated:[]}))},0);
+  const fail=msg=>{if(!done){done=true;try{peer&&peer.destroy()}catch(e){}reject(new Error(msg))}else if(!closed){closed=true;errHs.forEach(h=>h({code:"upstream_error",message:msg}));try{peer.destroy()}catch(e){}}};
+  const broadcast=()=>{const m={t:"all",table};for(const c of conns.values()) if(c.open) try{c.send(m)}catch(e){}};
+  const room={
+    presence:async patch=>{mine={...mine};for(const k in patch){if(patch[k]===null) delete mine[k];else mine[k]=JSON.parse(JSON.stringify(patch[k]))}
+      if(myId) table[myId]=mine;
+      if(asHost) broadcast();else if(hostConn&&hostConn.open) hostConn.send({t:"p",pr:mine});
+      fire()},
+    peers:snap,
+    onPeers:(h,e)=>{hs.push(h);if(e) errHs.push(e);fire();return()=>{}},
+    leave:async()=>{closed=true;try{peer.destroy()}catch(e){}}
+  };
+  try{peer=asHost?new Peer(id,{config:ICE}):new Peer({config:ICE})}catch(e){reject(new Error("network"));return}
+  const openT=setTimeout(()=>fail("timeout"),15000);
+  peer.on("open",pid=>{myId=pid;table[myId]=mine;
+    if(asHost){clearTimeout(openT);done=true;resolve(room);return}
+    hostConn=peer.connect(id,{reliable:true,serialization:"json"});
+    hostConn.on("open",()=>{clearTimeout(openT);done=true;hostConn.send({t:"p",pr:mine});resolve(room)});
+    hostConn.on("data",m=>{if(m&&m.t==="all"&&m.table&&typeof m.table==="object"){const nt={};for(const k in m.table) if(k!==myId) nt[k]=m.table[k];nt[myId]=mine;table=nt;fire()}});
+    hostConn.on("close",()=>fail("host_left"));
+    hostConn.on("error",()=>fail("host_left"));
+  });
+  if(asHost) peer.on("connection",c=>{
+    c.on("open",()=>{if(conns.size>=9){c.close();return}conns.set(c.peer,c);c.send({t:"all",table})});
+    c.on("data",m=>{if(m&&m.t==="p"&&m.pr&&typeof m.pr==="object"&&JSON.stringify(m.pr).length<6000){table[c.peer]=m.pr;broadcast();fire()}});
+    const gone=()=>{if(!conns.has(c.peer)) return;conns.delete(c.peer);delete table[c.peer];broadcast();fire()};
+    c.on("close",gone);c.on("error",gone);
+  });
+  peer.on("error",e=>{const ty=e&&e.type;if(asHost&&done&&ty==="peer-unavailable") return;clearTimeout(openT);fail(ty==="unavailable-id"?"taken":ty==="peer-unavailable"?"not_found":"network")});
+  peer.on("disconnected",()=>{if(!closed) try{peer.reconnect()}catch(e){}});
+})}
+function myPeer(){const p=(G&&G.room?G.room.peers():[]).find(x=>x.isMe&&x.sameTab);return p?p.peer:null}
+function me(){return G?(G.me||(G.me=myPeer())):null}
+const evId=()=>((G.st.ev&&G.st.ev.id)||0)+1;
+const randCode=()=>Array.from({length:4},()=>"abcdefghjkmnpqrstuvwxyz23456789"[Math.random()*31|0]).join("");
+function getName(){const v=cleanName($("myName").value);if(!$("myName").value.trim()){toast("Type your name first");$("myName").focus();return null}myName=v;store.set("ad_name",v);return v}
+const inviteLink=code=>location.href.split("#")[0]+"#"+code;
+
+function initLive(){
+  if(typeof Peer==="undefined"){$("liveNA").textContent="Live play needs an internet connection. Reload the page when you’re online. You can still play on one phone below.";return}
+  $("liveNA").hidden=true;$("liveOff").hidden=false;$("myName").value=myName;$("openGames").hidden=true;
+  const h=location.hash.replace("#","").toLowerCase();
+  if(/^[a-z0-9]{4}$/.test(h)){$("codeIn").value=h;toast("You’ve been invited! Type your name, then tap Join.");setTimeout(()=>$("livePanel").scrollIntoView({block:"center"}),300)}
+}
+function renderLobby(){}
+let joining=false;
+async function enterGame(code,asHost,tries=0){
+  if(joining) return;joining=true;$("hostBtn").disabled=true;$("joinBtn").disabled=true;
+  toast(asHost?"Opening a room…":"Joining room "+code.toUpperCase()+"…");
+  let room;
+  try{room=await netJoin(code,asHost)}catch(e){
+    joining=false;$("hostBtn").disabled=false;$("joinBtn").disabled=false;
+    if(e.message==="taken"&&asHost&&tries<3) return enterGame(randCode(),true,tries+1);
+    toast(e.message==="not_found"?"No room with that code. Check it with the host.":e.message==="timeout"?"Connection timed out. Try again, or join the same Wi-Fi.":"Couldn’t connect. Check your internet and try again.");return}
+  joining=false;$("hostBtn").disabled=false;$("joinBtn").disabled=false;
+  G={room,code,me:null,isHost:false,st:null,cache:null,lastV:null,lastEv:null,lastAct:{},actN:Date.now(),lastReact:{},busy:false,pendingSt:null,takeoverT:null};
+  G.me=myPeer();
+  closeModalUI();todReset();
+  $("liveOff").hidden=true;$("liveOn").hidden=false;$("liveCode").textContent=code.toUpperCase();
+  $("liveInfo").textContent=asHost?"Send the code or the invite link to your friends.":"Connecting to the game…";
+  if(asHost) becomeHost(freshState());
+  room.presence({name:myName}).catch(()=>{});
+  room.onPeers(onGamePeers,e=>{toast(e&&e.message==="host_left"?"The host ended the game.":"Lost the live connection.");leaveGame()});
+  if(!asHost) setTimeout(()=>{if(G&&G.code===code&&!G.cache){toast("The host isn’t responding. Try again.");leaveGame()}},12000);
+  renderLevels();
+}
+function freshState(){return{v:0,level,mode,order:[],names:{},pos:{},turn:0,board:Array.from({length:36},boardRef),phase:"idle",w:null,last:null,host:null,ev:{id:1,type:"init"}}}
+function becomeHost(s){
+  G.isHost=true;G.st=s;
+  for(const p of G.room.peers()){const a=p.presence&&p.presence.act;if(a&&typeof a.n==="number") G.lastAct[p.peer]=a.n}
+  publish();renderLevels();
+}
+function publish(){const s=G.st;s.v++;s.host=me();G.room.presence({st:JSON.parse(JSON.stringify(s))}).catch(()=>toast("Live update failed. Check your connection."));queueState(JSON.parse(JSON.stringify(s)))}
+function sendAct(a){
+  if(!G) return;
+  if(G.isHost){if(hostApply(me(),a)) publish();else updateControls();return}
+  G.actN++;G.room.presence({act:{t:a.t,v:a.v||null,n:G.actN}}).catch(()=>toast("Couldn’t send. Check your connection."));
+}
+function onGamePeers(ch){
+  if(!G) return;
+  const peers=ch.peers.filter(p=>p.kind==="viewer");
+  if(!G.me){const m=peers.find(p=>p.isMe&&p.sameTab);if(m) G.me=m.peer}
+  for(const p of peers){const r=p.presence&&p.presence.react;if(r&&typeof r.n==="number"&&r.n!==G.lastReact[p.peer]){const seen=p.peer in G.lastReact;G.lastReact[p.peer]=r.n;if(seen&&!p.sameTab) floatReact(r.e,p.presence.name)}else if(!(p.peer in G.lastReact)) G.lastReact[p.peer]=r?r.n:0}
+  if(G.isHost){hostSync(peers);return}
+  const hosts=peers.filter(p=>!p.sameTab&&p.presence&&p.presence.st&&typeof p.presence.st.v==="number"&&Array.isArray(p.presence.st.order));
+  if(hosts.length){const h=hosts.sort((a,b)=>b.presence.st.v-a.presence.st.v)[0];if(h.presence.st.v!==G.lastV) queueState(h.presence.st)}
+}
+function hostSync(peers){
+  const s=G.st;let ch=false;
+  const present=peers.filter(p=>p.presence&&typeof p.presence.name==="string");
+  for(const p of present){const nm=cleanName(p.presence.name);
+    if(!s.order.includes(p.peer)){if(s.order.length>=10) continue;s.order.push(p.peer);s.pos[p.peer]=-1;ch=true;if(!p.sameTab) toast(`${nm} joined 🎉`)}
+    if(s.names[p.peer]!==nm){s.names[p.peer]=nm;ch=true}}
+  const ids=new Set(present.map(p=>p.peer));
+  for(let i=s.order.length-1;i>=0;i--){const p=s.order[i];if(ids.has(p)) continue;
+    const wasTurn=s.order.length&&i===s.turn%s.order.length;toast(`${s.names[p]||"A player"} left`);
+    s.order.splice(i,1);delete s.pos[p];delete s.names[p];if(i<s.turn) s.turn--;
+    if(s.w===p||(wasTurn&&s.phase==="card")||(s.phase==="choose"&&s.w===p)){s.phase="idle";s.w=null;s.ev={id:evId(),type:"res",p:null,ok:false,left:true}}
+    ch=true}
+  s.turn=s.order.length?((s.turn%s.order.length)+s.order.length)%s.order.length:0;
+  for(const p of present){if(p.sameTab) continue;const a=p.presence.act;
+    if(a&&typeof a.n==="number"&&a.n>(G.lastAct[p.peer]||0)){G.lastAct[p.peer]=a.n;if(hostApply(p.peer,a)) ch=true}}
+  if(ch) publish();
+}
+function hostApply(p,a){
+  const s=G.st,n=s.order.length;if(!n||!s.order.includes(p)) return false;
+  const turnP=s.order[s.turn%n];
+  if(a.t==="roll"){
+    if(s.mode!=="board"||s.phase!=="idle"||p!==turnP) return false;
+    const d=1+(Math.random()*6|0),from=s.pos[p]??-1,to=((from+d)%36+36)%36;
+    s.pos[p]=to;s.phase="card";s.ev={id:evId(),type:"roll",p,d,from,to};return true}
+  if(a.t==="done"||a.t==="skip"){
+    const ok=a.t==="done";
+    if(s.mode==="board"&&s.phase==="card"&&p===turnP){const sq=s.pos[p],c=C(s.board[sq]);s.board[sq]=boardRef();if(!c.again) s.turn=(s.turn+1)%n;s.phase="idle";s.ev={id:evId(),type:"res",p,ok,sq};return true}
+    if(s.mode==="tod"&&s.phase==="todcard"&&p===s.w){s.phase="idle";s.w=null;s.ev={id:evId(),type:"res",p,ok};return true}
+    return false}
+  if(a.t==="spin"){
+    if(s.mode!=="tod"||s.phase!=="idle"||n<2) return false;
+    let w;do{w=s.order[Math.random()*n|0]}while($("noRepeat").checked&&n>2&&w===s.last);
+    s.w=w;s.last=w;s.phase="choose";s.ev={id:evId(),type:"spin",w,turns:5+(Math.random()*3|0),jit:Math.random()-.5};return true}
+  if(a.t==="pick"){
+    if(s.mode!=="tod"||s.phase!=="choose"||p!==s.w) return false;
+    const pick=["T","D","R"].includes(a.v)?a.v:"R",type=pick==="R"?(Math.random()<.5?"T":"D"):pick;
+    s.phase="todcard";s.ev={id:evId(),type:"card",p,c:drawRef(type),real:type,pick};return true}
+  return false;
+}
+function queueState(st){if(!G) return;G.pendingSt=st;if(!G.busy) drainState()}
+function drainState(){if(!G||!G.pendingSt) return;const s=G.pendingSt;G.pendingSt=null;applyState(s)}
+function applyState(s){
+  const first=G.lastV==null;G.lastV=s.v;G.cache=JSON.parse(JSON.stringify(s));if(!G.isHost) G.st=s;
+  if(s.level!==level&&L[s.level]){level=s.level;applyTheme();renderLevels()}
+  if(s.mode!==mode) setMode(s.mode,true);
+  players=s.order.map(p=>cleanName(s.names[p]));pos=s.order.map(p=>s.pos[p]??-1);turn=s.turn;board=s.board.slice(0,36);
+  const n=s.order.length;
+  $("liveInfo").textContent=`${n} player${n===1?"":"s"} connected${G.isHost?". You’re the host 👑":""}${n<2?". Waiting for friends to join…":""}`;
+  const ev=s.ev||{},isNew=!first&&ev.id!==G.lastEv;G.lastEv=ev.id;
+  const idx=p=>s.order.indexOf(p),nm=p=>cleanName(s.names[p]),mine=p=>p===me();
+  if(isNew&&ev.type==="roll"&&idx(ev.p)>=0){
+    G.busy=true;const pi=idx(ev.p);turn=pi;pos[pi]=ev.from;renderPlayers();renderBoard();
+    animRoll(pi,ev.from,ev.d,()=>{pos[pi]=ev.to;G.busy=false;openModal(C(board[ev.to]),ev.to,{mine:mine(ev.p),ownerName:nm(ev.p)});updateControls();drainState()});return}
+  if(isNew&&ev.type==="spin"&&idx(ev.w)>=0){
+    G.busy=true;renderPlayers();spinTo(idx(ev.w),ev.turns,ev.jit,()=>{G.busy=false;showChoose(idx(ev.w));updateControls();drainState()});return}
+  if(isNew&&ev.type==="card"){renderPlayers();showTodCard(ev.c,ev.real,ev.pick==="R",idx(ev.p),mine(ev.p));return}
+  if(isNew&&ev.type==="res"){
+    closeModalUI();renderPlayers();
+    if(s.mode==="board"){renderBoard({fresh:ev.sq});if(ev.p) toast(ev.ok?`${nm(ev.p)} did it ✅`:`${nm(ev.p)} skipped`)}
+    else todReset(ev.left?"A player left. Spin again!":ev.ok?`${nm(ev.p)} did it! Spin again.`:`${nm(ev.p)} skipped. Spin again.`);
+    if(ev.ok) burst(innerWidth/2,innerHeight/2,50);return}
+  if(isNew&&ev.type==="reset"){closeModalUI();todReset()}
+  renderPlayers();renderBoard();
+  if(first){
+    if(s.mode==="board"&&s.phase==="card"&&n){const p=s.order[s.turn%n];openModal(C(board[s.pos[p]]),s.pos[p],{mine:mine(p),ownerName:nm(p)})}
+    if(s.mode==="tod"&&s.phase==="choose"&&idx(s.w)>=0){setWheelTo(idx(s.w));showChoose(idx(s.w))}
+    if(s.mode==="tod"&&s.phase==="todcard"&&ev.type==="card"){showTodCard(ev.c,ev.real,ev.pick==="R",idx(ev.p),mine(ev.p))}
+  }
+}
+function hostReset(newLevel){
+  const s=G.st;if(newLevel){level=newLevel;decks={};s.level=newLevel}
+  s.board=Array.from({length:36},boardRef);for(const p of s.order) s.pos[p]=-1;s.turn=0;s.phase="idle";s.w=null;s.ev={id:evId(),type:"reset"};publish();
+}
+function leaveGame(){
+  if(!G) return;const g=G;G=null;clearTimeout(g.takeoverT);
+  g.room.leave().catch(()=>{});
+  players=localPlayers.slice();pos=players.map(()=>-1);turn=0;
+  closeModalUI();todReset();$("liveOn").hidden=true;$("liveOff").hidden=typeof Peer==="undefined";
+  renderLevels();newBoard();renderPlayers();
+}
+
+/* ---------- events ---------- */
+$("levels").onclick=e=>{const b=e.target.closest(".lv");if(!b) return;
+  if(G){if(!G.isHost){toast("Only the host can change the level");return}store.set("ad_level",b.dataset.k);hostReset(b.dataset.k);return}
+  level=b.dataset.k;store.set("ad_level",level);applyTheme();renderLevels();pos=players.map(()=>-1);turn=0;newBoard();todReset();renderPlayers()};
+$("players").addEventListener("click",e=>{const b=e.target.closest("[data-rm]");if(!b||G||spinning||rolling) return;if(players.length<=1) return;const i=+b.dataset.rm;players.splice(i,1);pos.splice(i,1);localPlayers=players.slice();store.set("ad_players",localPlayers);lastPick=-1;todReset();renderPlayers();renderBoard()});
+$("players").addEventListener("submit",e=>{e.preventDefault();const v=$("pname").value.trim();if(!v||G||players.length>=10||spinning||rolling) return;players.push(cleanName(v));pos.push(-1);localPlayers=players.slice();store.set("ad_players",localPlayers);renderPlayers();renderBoard();$("pname").focus()});
+$("tabBoard").onclick=()=>setMode("board");$("tabTod").onclick=()=>setMode("tod");
+$("roll").onclick=roll;
+$("newBoard").onclick=()=>{if(G){if(!G.isHost){toast("Only the host can shuffle the board");return}const s=G.st;s.board=Array.from({length:36},boardRef);s.ev={id:evId(),type:"reset"};s.phase="idle";publish();return}newBoard()};
+$("resetPos").onclick=()=>{if(G){if(!G.isHost){toast("Only the host can reset");return}hostReset();return}pos=players.map(()=>-1);turn=0;renderPlayers();renderBoard()};
+$("board").onclick=e=>{const t=e.target.closest(".tile");if(!t||rolling||$("modal").classList.contains("open")) return;const i=+t.dataset.i;openModal(C(board[i]),i,{preview:!!G,mine:!G})};
+$("mOk").onclick=()=>modalAnswer(true);$("mSkip").onclick=()=>modalAnswer(false);
+$("mClose").onclick=()=>{$("modal").classList.remove("open");if(!G) pending=null;updateControls()};
+$("modal").onclick=e=>{if(e.target.id!=="modal") return;if(!$("mClose").hidden) $("mClose").click();else if(!G) closeLocal(false)};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("modal").classList.contains("open")){if(!$("mClose").hidden) $("mClose").click();else if(!G) closeLocal(false)}});
+$("spin").onclick=spin;
+$("choose").onclick=e=>{const b=e.target.closest("[data-t]");if(b&&!b.disabled) todPick(b.dataset.t)};
+$("todOk").onclick=()=>todAnswer(true);$("todSkip").onclick=()=>todAnswer(false);
+$("hostBtn").onclick=()=>{if(!getName()) return;audio();enterGame(randCode(),true)};
+$("joinBtn").onclick=()=>{const c=$("codeIn").value.trim().toLowerCase();if(!getName()) return;if(!/^[a-z0-9]{4}$/.test(c)){toast("Codes are 4 letters or numbers");return}audio();enterGame(c,false)};
+$("inviteBtn").onclick=async()=>{if(!G) return;const url=inviteLink(G.code),text=`Join my After Dark game! Room code: ${G.code.toUpperCase()}`;try{if(navigator.share){await navigator.share({title:"After Dark",text,url});return}}catch(e){return}try{await navigator.clipboard.writeText(text+" "+url);toast("Invite link copied")}catch(e){prompt("Copy this invite link:",url)}};
+$("leaveBtn").onclick=leaveGame;
+$("reacts").onclick=e=>{const b=e.target.closest("button");if(!b||!G) return;const em=b.textContent;floatReact(em,myName);G.room.presence({react:{n:Date.now(),e:em}}).catch(()=>{})};
+$("mute").onclick=()=>{muted=!muted;store.set("ad_muted",muted);$("mute").textContent=muted?"🔇":"🔊";$("mute").setAttribute("aria-label",muted?"Sound off":"Sound on")};
+$("mute").textContent=muted?"🔇":"🔊";
+$("gateOk").onclick=()=>{store.set("ad_ok",true);$("gate").classList.remove("open")};
+$("gateNo").onclick=()=>{document.body.innerHTML='<p style="padding:40px;text-align:center;font-family:Outfit,system-ui,sans-serif">Come back when you’re 18+.</p>'};
+
+applyTheme();renderLevels();newBoard();renderPlayers();
+document.fonts&&document.fonts.ready.then(()=>{if(!spinning) drawWheel()});
+if(!store.get("ad_ok",false)) $("gate").classList.add("open");
+initLive();
+</script>
+</body>
+</html>
